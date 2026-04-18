@@ -8,6 +8,10 @@
 
 移动端两阶段滚动交互 Demo。白色容器（Bottom Sheet 风格）先整体上滑覆盖背景，到顶后容器保持圆角，内部商品内容继续滚动。
 
+| 默认状态 | 上滑到顶 |
+|:---:|:---:|
+| ![默认状态](./double-scroll/screenshots/default-state.png) | ![上滑到顶](./double-scroll/screenshots/scrolled-state.png) |
+
 - `index.html` — v1 原型：背景随页面滚动
 - `index2.html` — v2 最终版：三层架构 + 幽灵占位映射滚动
 
