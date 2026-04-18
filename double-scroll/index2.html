@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>超值特惠专区 v2</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { font-family: -apple-system, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  body { background: #3D1500; -webkit-overflow-scrolling: touch; }
+
+  /* ===== Layer 1: Fixed Background (nav + banner as ONE area) ===== */
+  .bg-layer {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 100vh; z-index: 0;
+    background: linear-gradient(180deg, #FF6A00 0%, #FF5500 88px, #CC3300 45%, #3D1500 100%);
+  }
+  .bg-layer .bg-top {
+    height: 88px;
+    display: flex; align-items: flex-end;
+    padding: 0 12px 10px;
+    justify-content: space-between;
+  }
+  .bg-layer .back-btn {
+    font-size: 22px; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .bg-layer .reward-badge {
+    background: rgba(255,255,255,0.2); border-radius: 20px;
+    padding: 4px 14px; font-size: 13px; font-weight: 500;
+    color: #fff; display: flex; align-items: center; gap: 4px;
+  }
+  .bg-layer .reward-badge::before { content: "🎁"; }
+  .bg-layer .nav-right { width: 32px; }
+
+  .bg-layer .banner-content {
+    padding: 24px 20px;
+  }
+  .bg-layer .banner-content .subtitle {
+    color: #FFCC80; font-size: 14px; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .bg-layer .banner-content .title {
+    font-size: 30px; font-weight: 800;
+    background: linear-gradient(90deg, #FFD700, #FFEE88);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1.3;
+  }
+
+  /* ===== Layer 3: Fixed Nav (always on top of everything) ===== */
+  .nav-overlay {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 88px; z-index: 100;
+    /* Same gradient as bg-layer, so nav is just the top slice of the same background */
+    background: linear-gradient(180deg, #FF6A00 0%, #FF5500 100%);
+    display: flex; align-items: flex-end;
+    padding: 0 12px 10px;
+    justify-content: space-between;
+  }
+  .nav-overlay .back-btn {
+    font-size: 22px; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .nav-overlay .reward-badge {
+    background: rgba(255,255,255,0.2); border-radius: 20px;
+    padding: 4px 14px; font-size: 13px; font-weight: 500;
+    color: #fff; display: flex; align-items: center; gap: 4px;
+  }
+  .nav-overlay .reward-badge::before { content: "🎁"; }
+  .nav-overlay .nav-right { width: 32px; }
+
+  /* ===== Layer 2: Scrollable Content ===== */
+  .scroll-layer {
+    position: relative; z-index: 1;
+  }
+  /* Transparent spacer — lets the fixed background show through */
+  .scroll-spacer {
+    height: 220px;
+    pointer-events: none;
+  }
+
+  /* ===== White Product Container (slides OVER background) ===== */
+  .product-container {
+    position: sticky;
+    top: 88px; /* sticks right below nav */
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    height: calc(100vh - 88px);
+    overflow: hidden; /* hide content, inner div scrolls */
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  }
+  .product-scroll {
+    height: 100%;
+    overflow: hidden; /* JS controls scrollTop, no native inner scroll */
+    padding: 16px 12px 40px;
+  }
+
+  /* Ghost element: gives the page enough scroll height for inner content */
+  .scroll-phantom {
+    height: 0; /* set by JS after measuring inner content */
+  }
+
+  /* ===== Featured Product Card ===== */
+  .featured-product {
+    display: flex; gap: 12px;
+    background: #fff; border-radius: 12px;
+    padding: 12px; margin-bottom: 12px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    border: 1px solid #f0f0f0;
+  }
+  .featured-product .product-img {
+    width: 140px; height: 140px; min-width: 140px;
+    border-radius: 8px; overflow: hidden;
+  }
+  .featured-product .product-img .img-placeholder {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #8B4513, #D2691E);
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.7); font-size: 12px; text-align: center; line-height: 1.6;
+  }
+  .featured-product .product-info {
+    flex: 1; display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .featured-product .product-name {
+    font-size: 15px; font-weight: 600; color: #333; line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .featured-product .sales { font-size: 12px; color: #FF6A00; margin-top: 4px; }
+  .featured-product .pay-later {
+    font-size: 11px; color: #999; margin-top: 2px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .price-row { display: flex; align-items: baseline; gap: 4px; margin-top: 6px; }
+  .price-symbol { font-size: 14px; color: #FF3B30; font-weight: 700; }
+  .price-value { font-size: 22px; color: #FF3B30; font-weight: 800; line-height: 1; }
+  .price-label { font-size: 11px; color: #FF6A00; margin-left: 2px; }
+  .price-original { font-size: 12px; color: #bbb; text-decoration: line-through; margin-left: 4px; }
+  .coupon-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #FFF0F0; color: #FF3B30; font-size: 11px;
+    padding: 2px 8px; border-radius: 4px; margin-top: 6px;
+    border: 1px solid #FFE0E0;
+  }
+
+  /* ===== Shop Row ===== */
+  .shop-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid #f5f5f5;
+  }
+  .shop-info { display: flex; align-items: center; gap: 6px; }
+  .shop-avatar {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #E8D5B7; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #8B6914;
+  }
+  .shop-name { font-size: 12px; color: #666; }
+  .shop-badge {
+    font-size: 10px; color: #FF6A00;
+    border: 1px solid #FFDAB9; border-radius: 3px;
+    padding: 0 4px; margin-left: 4px;
+  }
+  .buy-btn {
+    background: linear-gradient(135deg, #FF6A00, #FF3D00);
+    color: #fff; border: none; border-radius: 20px;
+    padding: 8px 16px; font-size: 12px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 4px;
+  }
+  .buy-btn::before { content: "🛒"; font-size: 13px; }
+
+  /* ===== Product Grid ===== */
+  .product-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-top: 4px;
+  }
+  .product-card {
+    background: #fff; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    border: 1px solid #f0f0f0;
+  }
+  .product-card .card-img {
+    width: 100%; aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 500;
+  }
+  .product-card .card-body { padding: 8px 10px 12px; }
+  .product-card .card-title {
+    font-size: 13px; color: #333; font-weight: 600; line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; min-height: 36px;
+  }
+  .product-card .card-price-row { display: flex; align-items: baseline; gap: 3px; margin-top: 6px; }
+  .product-card .card-price-symbol { font-size: 12px; color: #FF3B30; font-weight: 700; }
+  .product-card .card-price-value { font-size: 17px; color: #FF3B30; font-weight: 800; line-height: 1; }
+  .product-card .card-price-label { font-size: 10px; color: #FF6A00; }
+  .product-card .card-price-original { font-size: 11px; color: #bbb; text-decoration: line-through; }
+  .product-card .card-shop {
+    display: flex; align-items: center; gap: 4px;
+    margin-top: 8px; font-size: 11px; color: #999;
+  }
+  .product-card .card-shop-avatar {
+    width: 16px; height: 16px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<!-- Layer 1: Fixed background (nav + banner = ONE continuous area) -->
+<div class="bg-layer">
+  <div class="bg-top">
+    <div class="back-btn">‹</div>
+    <div class="reward-badge">浏览商品 15 秒，得奖励</div>
+    <div class="nav-right"></div>
+  </div>
+  <div class="banner-content">
+    <div class="subtitle">超值特惠专区</div>
+    <div class="title">逛一逛 得奖励 ✨</div>
+  </div>
+</div>
+
+<!-- Layer 3: Fixed nav overlay (always on top of white container) -->
+<nav class="nav-overlay">
+  <div class="back-btn">‹</div>
+  <div class="reward-badge">浏览商品 15 秒，得奖励</div>
+  <div class="nav-right"></div>
+</nav>
+
+<!-- Layer 2: Scrollable content -->
+<div class="scroll-layer">
+
+  <!-- Transparent spacer: background shows through here -->
+  <div class="scroll-spacer"></div>
+
+  <!-- White container: slides up OVER the background -->
+  <section class="product-container">
+    <div class="product-scroll">
+
+    <!-- Featured Product -->
+    <div class="featured-product">
+      <div class="product-img">
+        <div class="img-placeholder">甜柔醇滑<br>茶韵绵长</div>
+      </div>
+      <div class="product-info">
+        <div>
+          <div class="product-name">【老茶开仓|买一送一】1992年冰岛熟茶散茶，33年陈韵醇厚回甘</div>
+          <div class="sales">4000+人已购买</div>
+          <div class="pay-later"><span>👁</span> 先用后付</div>
+        </div>
+        <div>
+          <div class="price-row">
+            <span class="price-symbol">¥</span>
+            <span class="price-value">254</span>
+            <span class="price-label">券后价</span>
+            <span class="price-original">¥292</span>
+          </div>
+          <div class="coupon-tag">🏷 满200减30</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="shop-row">
+      <div class="shop-info">
+        <div class="shop-avatar">福</div>
+        <span class="shop-name">福茶尊茶业</span>
+        <span class="shop-badge">好店</span>
+      </div>
+      <button class="buy-btn">去微信小店购买</button>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="product-grid" id="productGrid"></div>
+
+    </div><!-- .product-scroll -->
+  </section>
+
+  <!-- Ghost spacer: gives the page enough scroll room for inner content -->
+  <div class="scroll-phantom"></div>
+
+</div>
+
+<script>
+const products = [
+  { name: "自然原味 滋养安心 孕妈妈可以安心吃 无花果桑葚黑芝麻核桃丸", price: 254, original: 292, shop: "托诗商贸精选", color: "#C4A265", shopColor: "#4CAF50" },
+  { name: "高膳食纤维 谷物代餐 每100g含膳食纤维11.1g 健康轻食之选", price: 254, original: 292, shop: "蒸乾坤食品甄选", color: "#D4A574", shopColor: "#FF9800" },
+  { name: "视频+图册指引 好拼搭 更自信 时尚穿搭指南2024春夏新品", price: 168, original: 239, shop: "潮流穿搭馆", color: "#7B9E6B", shopColor: "#9C27B0" },
+  { name: "100%日晒原浆 大自然的味道 0糖0卡 鲜榨果蔬汁300ml×9瓶", price: 89, original: 128, shop: "鲜果工坊", color: "#88B7D5", shopColor: "#2196F3" },
+  { name: "云南特产手工鲜花饼 玫瑰花酥饼 传统糕点零食礼盒装10枚", price: 39, original: 68, shop: "云南味道", color: "#E8A0BF", shopColor: "#E91E63" },
+  { name: "进口坚果混合装 每日坚果大礼包 营养健康零食500g", price: 128, original: 198, shop: "坚果优选", color: "#C9B896", shopColor: "#795548" },
+  { name: "有机红枣新疆特产 若羌灰枣 一级精选免洗枣500g×2袋", price: 45, original: 79, shop: "新疆直供", color: "#D4726A", shopColor: "#F44336" },
+  { name: "日式抹茶粉烘焙专用 宇治抹茶拿铁原料 100g罐装", price: 68, original: 98, shop: "茶之道", color: "#8DB580", shopColor: "#4CAF50" },
+  { name: "手工酿造陈醋 山西老陈醋5年窖藏 纯粮食醋500ml", price: 32, original: 56, shop: "醋香坊", color: "#A67B5B", shopColor: "#FF5722" },
+  { name: "东北黑木耳干货 秋耳新货 优质小碗耳无根肉厚200g", price: 28, original: 48, shop: "山珍优选", color: "#4A4A4A", shopColor: "#607D8B" },
+  { name: "农家土蜂蜜 天然野生百花蜜 纯正结晶蜜500g", price: 78, original: 118, shop: "蜜源山庄", color: "#E8B84B", shopColor: "#FFC107" },
+  { name: "精选牛肉干 内蒙古风干牛肉 手撕牛肉零食250g", price: 68, original: 99, shop: "草原牧歌", color: "#8B5E3C", shopColor: "#795548" },
+  { name: "即食燕窝 冰糖官燕 孕妇滋补营养品 6瓶礼盒装", price: 388, original: 520, shop: "燕之屋优选", color: "#F5E6CC", shopColor: "#FF9800" },
+  { name: "意大利进口通心粉 低脂全麦意面 500g×3袋装", price: 42, original: 65, shop: "环球美食", color: "#D4C5A0", shopColor: "#9E9E9E" },
+  { name: "冻干草莓脆 整颗大草莓 酸甜酥脆零食 100g罐装", price: 35, original: 58, shop: "果香四季", color: "#E06070", shopColor: "#E91E63" },
+  { name: "有机藜麦米 三色藜麦 代餐粗粮高蛋白主食 500g", price: 56, original: 89, shop: "谷之源", color: "#C8A96E", shopColor: "#8BC34A" },
+  { name: "手工现磨黑芝麻丸 九蒸九晒 每日营养零食30颗", price: 49, original: 78, shop: "本草优品", color: "#3D3D3D", shopColor: "#424242" },
+  { name: "青岛原浆精酿啤酒 全麦鲜啤 1L×6桶 冷链直达", price: 108, original: 158, shop: "鲜啤直供", color: "#D4A030", shopColor: "#FF8F00" },
+  { name: "新疆薄皮核桃 纸皮核桃 原味坚果 500g×2袋", price: 39, original: 68, shop: "果壳优选", color: "#B8926A", shopColor: "#6D4C41" },
+  { name: "桂花龙井茶叶 明前特级绿茶 礼盒装250g", price: 168, original: 238, shop: "茗香阁", color: "#7BA05B", shopColor: "#388E3C" },
+];
+
+const grid = document.getElementById('productGrid');
+products.forEach(p => {
+  const card = document.createElement('div');
+  card.className = 'product-card';
+  card.innerHTML = `
+    <div class="card-img" style="background:linear-gradient(135deg,${p.color},${darken(p.color, 20)})">
+      ${p.name.slice(0, 6)}
+    </div>
+    <div class="card-body">
+      <div class="card-title">${p.name}</div>
+      <div class="card-price-row">
+        <span class="card-price-symbol">¥</span>
+        <span class="card-price-value">${p.price}</span>
+        <span class="card-price-label">券后价</span>
+        <span class="card-price-original">¥${p.original}</span>
+      </div>
+      <div class="card-shop">
+        <span class="card-shop-avatar" style="background:${p.shopColor}">${p.shop[0]}</span>
+        ${p.shop}
+        <span class="shop-badge" style="color:#FF6A00;border:1px solid #FFDAB9;border-radius:3px;padding:0 4px;margin-left:4px;font-size:10px;">好店</span>
+      </div>
+    </div>`;
+  grid.appendChild(card);
+});
+
+function darken(hex, amt) {
+  hex = hex.replace('#', '');
+  const n = parseInt(hex, 16);
+  const r = Math.max(0, (n >> 16) - amt);
+  const g = Math.max(0, ((n >> 8) & 0xFF) - amt);
+  const b = Math.max(0, (n & 0xFF) - amt);
+  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+}
+
+/* ===== Two-phase scroll: page scroll → mapped to inner scrollTop ===== */
+const scrollEl = document.querySelector('.product-scroll');
+const phantom  = document.querySelector('.scroll-phantom');
+const spacer   = document.querySelector('.scroll-spacer');
+
+// Phase 1 distance = spacer height (container slides up this much)
+const phase1   = spacer.offsetHeight;
+// Phase 2 distance = how much inner content overflows the container
+const innerOverflow = scrollEl.scrollHeight - scrollEl.clientHeight;
+
+// Ghost element makes the page tall enough for both phases
+// Total page scroll = phase1 (slide up) + innerOverflow (inner content)
+phantom.style.height = innerOverflow + 'px';
+
+window.addEventListener('scroll', () => {
+  const y = window.scrollY;
+  if (y <= phase1) {
+    // Phase 1: container is sliding up, inner content stays at top
+    scrollEl.scrollTop = 0;
+  } else {
+    // Phase 2: container is sticky, map extra scroll to inner scrollTop
+    scrollEl.scrollTop = y - phase1;
+  }
+}, { passive: true });
+</script>
+
+</body>
+</html>
